@@ -2,10 +2,10 @@ import { createClient } from '@supabase/supabase-js'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
-  const fullName = typeof body?.fullName === 'string' ? body.fullName.trim() : ''
   const email = typeof body?.email === 'string' ? body.email.trim() : ''
+  const status = typeof body?.status === 'string' ? body.status.trim() : ''
 
-  if (!fullName || !email || !interest) {
+  if (!email || !status) {
     throw createError({
       statusCode: 400,
       statusMessage: 'Missing required fields.'
@@ -33,21 +33,13 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const interestLabel =
-    interest === 'invest_real_estate'
-      ? 'Invest in real estate'
-      : interest === 'need_financing'
-        ? 'Get financing'
-        : 'Invest in Igudar (equity)'
-
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: { persistSession: false }
   })
 
   const { error: insertError } = await supabase.from('waitlist_entries').insert({
-    full_name: fullName,
     email,
-    interest
+    status
   })
 
   if (insertError) {
@@ -56,6 +48,7 @@ export default defineEventHandler(async (event) => {
       statusMessage: 'Failed to save waitlist entry.'
     })
   }
+  
   console.log("Email From:", fromEmail);
   await $fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -66,11 +59,11 @@ export default defineEventHandler(async (event) => {
     body: {
       from: fromEmail,
       to: toEmail,
-      subject: `New waitlist signup: ${fullName}`,
+      subject: `New waitlist signup: ${email}`,
       html: `
         <h2>New waitlist signup</h2>
-        <p><strong>Name:</strong> ${fullName}</p>
         <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Status:</strong> ${status}</p>
       `
     }
   })

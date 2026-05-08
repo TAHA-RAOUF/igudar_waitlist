@@ -1,12 +1,14 @@
+import { createClient } from '@supabase/supabase-js'
+
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
+  const fullName = typeof body?.fullName === 'string' ? body.fullName.trim() : ''
   const email = typeof body?.email === 'string' ? body.email.trim() : ''
-  const role = typeof body?.role === 'string' ? body.role.trim() : 'Not provided'
 
-  if (!email) {
+  if (!fullName || !email || !interest) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Missing required field: email.'
+      statusMessage: 'Missing required fields.'
     })
   }
 
@@ -14,6 +16,8 @@ export default defineEventHandler(async (event) => {
   const apiKey = config.resendApiKey
   const fromEmail = config.resendFromEmail
   const toEmail = config.resendToEmail
+  const supabaseUrl = config.supabaseUrl
+  const supabaseAnonKey = config.supabaseAnonKey
 
   if (!apiKey || !fromEmail || !toEmail) {
     throw createError({
@@ -22,6 +26,37 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Supabase is not configured.'
+    })
+  }
+
+  const interestLabel =
+    interest === 'invest_real_estate'
+      ? 'Invest in real estate'
+      : interest === 'need_financing'
+        ? 'Get financing'
+        : 'Invest in Igudar (equity)'
+
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: { persistSession: false }
+  })
+
+  const { error: insertError } = await supabase.from('waitlist_entries').insert({
+    full_name: fullName,
+    email,
+    interest
+  })
+
+  if (insertError) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Failed to save waitlist entry.'
+    })
+  }
+  console.log("Email From:", fromEmail);
   await $fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -31,11 +66,11 @@ export default defineEventHandler(async (event) => {
     body: {
       from: fromEmail,
       to: toEmail,
-      subject: `New waitlist signup: ${email}`,
+      subject: `New waitlist signup: ${fullName}`,
       html: `
         <h2>New waitlist signup</h2>
+        <p><strong>Name:</strong> ${fullName}</p>
         <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Role:</strong> ${role}</p>
       `
     }
   })

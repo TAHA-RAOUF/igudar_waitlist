@@ -1,6 +1,7 @@
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const email = typeof body?.email === 'string' ? body.email.trim() : ''
+  const role = typeof body?.role === 'string' ? body.role.trim() : 'Not provided'
 
   if (!email) {
     throw createError({
@@ -34,6 +35,7 @@ export default defineEventHandler(async (event) => {
       html: `
         <h2>New waitlist signup</h2>
         <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Role:</strong> ${role}</p>
       `
     }
   })

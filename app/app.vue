@@ -1,12 +1,27 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Loader2, CheckCircle2 } from 'lucide-vue-next'
 
 const email = ref('')
+const selectedRole = ref('')
+const isDialogOpen = ref(false)
 const isSubmitting = ref(false)
 const serverMessage = ref('')
 const isSuccess = ref(false)
 
-const handleSubmit = async () => {
+const handleEmailSubmit = () => {
   serverMessage.value = ''
   isSuccess.value = false
 
@@ -15,18 +30,26 @@ const handleSubmit = async () => {
     return
   }
 
+  isDialogOpen.value = true
+}
+
+const submitFinal = async () => {
+  if (!selectedRole.value) return
   isSubmitting.value = true
 
   try {
     await $fetch('/api/waitlist', {
       method: 'POST',
       body: {
-        email: email.value
+        email: email.value,
+        role: selectedRole.value
       }
     })
     serverMessage.value = 'Thanks for joining!'
     isSuccess.value = true
     email.value = ''
+    selectedRole.value = ''
+    isDialogOpen.value = false
   } catch (error) {
     serverMessage.value = 'Something went wrong. Please try again.'
     isSuccess.value = false
@@ -66,27 +89,45 @@ const handleSubmit = async () => {
           Start building wealth together — join the IGUDAR waitlist.
         </p>
 
-        <form @submit.prevent="handleSubmit" class="flex flex-col sm:flex-row gap-3 w-full max-w-md mx-auto">
-          <div class="relative flex-1">
-            <Input 
-              v-model="email" 
-              type="email" 
-              placeholder="name@domain.com" 
-              class="h-14 w-full rounded-full px-6 bg-white border border-neutral-200 shadow-sm text-base text-neutral-900 placeholder:text-neutral-400 focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-0 transition-all"
-              :disabled="isSubmitting"
-            />
-          </div>
-          <Button 
-            type="submit" 
-            class="h-14 rounded-full px-8 bg-neutral-900 hover:bg-neutral-800 text-white font-semibold text-base shadow-sm transition-all sm:w-auto w-full flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed"
-            :disabled="isSubmitting"
+        <div class="h-20 flex items-center justify-center relative w-full max-w-md mx-auto">
+          <transition 
+            enter-active-class="transition-all duration-500 ease-out absolute w-full"
+            enter-from-class="opacity-0 translate-y-4"
+            enter-to-class="opacity-100 translate-y-0"
+            leave-active-class="transition-all duration-300 ease-in absolute w-full"
+            leave-from-class="opacity-100 translate-y-0"
+            leave-to-class="opacity-0 -translate-y-4"
           >
-            {{ isSubmitting ? 'Joining...' : 'Join now' }}
-          </Button>
-        </form>
+            <form v-if="!isSuccess" @submit.prevent="handleEmailSubmit" class="flex flex-col sm:flex-row gap-3 w-full">
+              <div class="relative flex-1">
+                <Input 
+                  v-model="email" 
+                  type="email" 
+                  placeholder="name@domain.com" 
+                  class="h-14 w-full rounded-full px-6 bg-white border border-neutral-200 shadow-sm text-base text-neutral-900 placeholder:text-neutral-400 focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-0 transition-all"
+                  :disabled="isSubmitting"
+                />
+              </div>
+              <Button 
+                type="submit" 
+                class="h-14 rounded-full px-8 bg-neutral-900 hover:bg-neutral-800 text-white font-semibold text-base shadow-sm transition-all sm:w-auto w-full flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed"
+                :disabled="isSubmitting"
+              >
+                Join now
+              </Button>
+            </form>
 
-        <div class="mt-4 min-h-[24px]">
-          <p v-if="serverMessage" :class="['text-sm font-medium', isSuccess ? 'text-green-600' : 'text-red-600']">
+            <div v-else class="flex flex-col items-center justify-center w-full bg-green-50 text-green-700 border border-green-200 rounded-full h-14 px-6 shadow-sm">
+              <div class="flex items-center gap-2 font-semibold text-base">
+                <CheckCircle2 class="w-5 h-5" />
+                <span>You're on the list! We'll be in touch.</span>
+              </div>
+            </div>
+          </transition>
+        </div>
+        
+        <div class="mt-2 min-h-[24px]">
+          <p v-if="serverMessage && !isSuccess" class="text-sm font-medium text-red-600">
             {{ serverMessage }}
           </p>
         </div>
@@ -121,6 +162,86 @@ const handleSubmit = async () => {
         <span class="mx-2">•</span>
         <span>Built in <strong class="text-neutral-600">Framer</strong></span>
       </footer> -->
+
+      <!-- Role Selection Dialog -->
+      <Dialog :open="isDialogOpen" @update:open="val => isDialogOpen = val">
+        <DialogContent class="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle class="text-xl">What best describes you? <span class="text-red-500">*</span></DialogTitle>
+            <DialogDescription>Please select one of the following to complete your registration.</DialogDescription>
+          </DialogHeader>
+          <div class="py-4">
+            <RadioGroup v-model="selectedRole" class="flex flex-col gap-2">
+              <label 
+                for="r-student" 
+                :class="['flex items-center space-x-3 rounded-xl border p-4 cursor-pointer transition-colors', selectedRole === 'student' ? 'border-neutral-900 bg-neutral-50' : 'border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50']"
+              >
+                <RadioGroupItem id="r-student" value="student" />
+                <span class="font-medium text-sm text-neutral-900">Student</span>
+              </label>
+              
+              <label 
+                for="r-founder" 
+                :class="['flex items-center space-x-3 rounded-xl border p-4 cursor-pointer transition-colors', selectedRole === 'founder_entrepreneur' ? 'border-neutral-900 bg-neutral-50' : 'border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50']"
+              >
+                <RadioGroupItem id="r-founder" value="founder_entrepreneur" />
+                <span class="font-medium text-sm text-neutral-900">Founder/Entrepreneur</span>
+              </label>
+              
+              <label 
+                for="r-corp" 
+                :class="['flex items-center space-x-3 rounded-xl border p-4 cursor-pointer transition-colors', selectedRole === 'corporate_industry_professional' ? 'border-neutral-900 bg-neutral-50' : 'border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50']"
+              >
+                <RadioGroupItem id="r-corp" value="corporate_industry_professional" />
+                <span class="font-medium text-sm text-neutral-900">Corporate/Industry Professional</span>
+              </label>
+
+              <label 
+                for="r-researcher" 
+                :class="['flex items-center space-x-3 rounded-xl border p-4 cursor-pointer transition-colors', selectedRole === 'researcher_academic' ? 'border-neutral-900 bg-neutral-50' : 'border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50']"
+              >
+                <RadioGroupItem id="r-researcher" value="researcher_academic" />
+                <span class="font-medium text-sm text-neutral-900">Researcher/Academic</span>
+              </label>
+
+              <label 
+                for="r-investor" 
+                :class="['flex items-center space-x-3 rounded-xl border p-4 cursor-pointer transition-colors', selectedRole === 'investor' ? 'border-neutral-900 bg-neutral-50' : 'border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50']"
+              >
+                <RadioGroupItem id="r-investor" value="investor" />
+                <span class="font-medium text-sm text-neutral-900">Investor</span>
+              </label>
+
+              <label 
+                for="r-family" 
+                :class="['flex items-center space-x-3 rounded-xl border p-4 cursor-pointer transition-colors', selectedRole === 'family_of_team_member' ? 'border-neutral-900 bg-neutral-50' : 'border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50']"
+              >
+                <RadioGroupItem id="r-family" value="family_of_team_member" />
+                <span class="font-medium text-sm text-neutral-900">Family of Team Member</span>
+              </label>
+
+              <label 
+                for="r-other" 
+                :class="['flex items-center space-x-3 rounded-xl border p-4 cursor-pointer transition-colors', selectedRole === 'other' ? 'border-neutral-900 bg-neutral-50' : 'border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50']"
+              >
+                <RadioGroupItem id="r-other" value="other" />
+                <span class="font-medium text-sm text-neutral-900">Other</span>
+              </label>
+            </RadioGroup>
+          </div>
+          <DialogFooter>
+            <Button 
+              type="button" 
+              @click="submitFinal" 
+              class="w-full bg-neutral-900 hover:bg-neutral-800 text-white h-12 rounded-full font-semibold transition-all" 
+              :disabled="isSubmitting || !selectedRole"
+            >
+              <Loader2 v-if="isSubmitting" class="w-5 h-5 mr-2 animate-spin" />
+              <span>{{ isSubmitting ? 'Joining...' : 'Complete Submission' }}</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   </div>
 </template>

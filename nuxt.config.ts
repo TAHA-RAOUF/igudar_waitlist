@@ -6,7 +6,9 @@ export default defineNuxtConfig({
   runtimeConfig: {
     resendApiKey: process.env.RESEND_API_KEY,
     resendFromEmail: process.env.RESEND_FROM_EMAIL,
-    resendToEmail: process.env.RESEND_TO_EMAIL
+    resendToEmail: process.env.RESEND_TO_EMAIL,
+    supabaseUrl: process.env.SUPABASE_URL,
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY
   },
 
   modules: ['@nuxtjs/tailwindcss', 'shadcn-nuxt'],

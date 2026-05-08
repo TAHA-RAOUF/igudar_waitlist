@@ -42,7 +42,7 @@ const submitFinal = async () => {
       method: 'POST',
       body: {
         email: email.value,
-        role: selectedRole.value
+        status: selectedRole.value
       }
     })
     serverMessage.value = 'Thanks for joining!'

@@ -33,18 +33,12 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const statusLabel =
-    status === 'student'
-      ? 'Student'
-      : status === 'founder_entrepreneur'
-        ? 'Founder/Entrepreneur'
-        : status === 'corporate_industry_professional'
-          ? 'Corporate/Industry professional'
-          : status === 'investor'
-            ? 'Investor'
-            : status === 'family_of_team_member'
-              ? 'Family of a team member'
-              : 'Other'
+  const interestLabel =
+    interest === 'invest_real_estate'
+      ? 'Invest in real estate'
+      : interest === 'need_financing'
+        ? 'Get financing'
+        : 'Invest in Igudar (equity)'
 
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: { persistSession: false }
@@ -61,6 +55,7 @@ export default defineEventHandler(async (event) => {
       statusMessage: 'Failed to save waitlist entry.'
     })
   }
+  console.log("Email From:", fromEmail);
   await $fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -74,26 +69,6 @@ export default defineEventHandler(async (event) => {
       html: `
         <h2>New waitlist signup</h2>
         <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Status:</strong> ${statusLabel}</p>
-      `
-    }
-  })
-
-  await $fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: {
-      from: fromEmail,
-      to: email,
-      subject: 'Thanks for joining the Igudar waitlist',
-      html: `
-        <h2>Thanks for joining Igudar</h2>
-        <p>Thanks for your interest in Igudar. We received your details and will reach out soon.</p>
-        <p><strong>Your selection:</strong> ${statusLabel}</p>
-        <p>See you at the showcase!</p>
       `
     }
   })

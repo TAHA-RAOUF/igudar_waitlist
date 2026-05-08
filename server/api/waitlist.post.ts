@@ -33,6 +33,13 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  const interestLabel =
+    interest === 'invest_real_estate'
+      ? 'Invest in real estate'
+      : interest === 'need_financing'
+        ? 'Get financing'
+        : 'Invest in Igudar (equity)'
+
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: { persistSession: false }
   })
@@ -48,7 +55,6 @@ export default defineEventHandler(async (event) => {
       statusMessage: 'Failed to save waitlist entry.'
     })
   }
-  
   console.log("Email From:", fromEmail);
   await $fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -63,7 +69,6 @@ export default defineEventHandler(async (event) => {
       html: `
         <h2>New waitlist signup</h2>
         <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Status:</strong> ${status}</p>
       `
     }
   })

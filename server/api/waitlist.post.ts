@@ -2,11 +2,10 @@ import { createClient } from '@supabase/supabase-js'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
-  const fullName = typeof body?.fullName === 'string' ? body.fullName.trim() : ''
   const email = typeof body?.email === 'string' ? body.email.trim() : ''
-  const interest = typeof body?.interest === 'string' ? body.interest.trim() : ''
+  const status = typeof body?.status === 'string' ? body.status.trim() : ''
 
-  if (!fullName || !email || !interest) {
+  if (!email || !status) {
     throw createError({
       statusCode: 400,
       statusMessage: 'Missing required fields.'
@@ -34,21 +33,26 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const interestLabel =
-    interest === 'invest_real_estate'
-      ? 'Invest in real estate'
-      : interest === 'need_financing'
-        ? 'Get financing'
-        : 'Invest in Igudar (equity)'
+  const statusLabel =
+    status === 'student'
+      ? 'Student'
+      : status === 'founder_entrepreneur'
+        ? 'Founder/Entrepreneur'
+        : status === 'corporate_industry_professional'
+          ? 'Corporate/Industry professional'
+          : status === 'investor'
+            ? 'Investor'
+            : status === 'family_of_team_member'
+              ? 'Family of a team member'
+              : 'Other'
 
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: { persistSession: false }
   })
 
   const { error: insertError } = await supabase.from('waitlist_entries').insert({
-    full_name: fullName,
     email,
-    interest
+    status
   })
 
   if (insertError) {
@@ -57,7 +61,6 @@ export default defineEventHandler(async (event) => {
       statusMessage: 'Failed to save waitlist entry.'
     })
   }
-  console.log("Email From:", fromEmail);
   await $fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -67,12 +70,11 @@ export default defineEventHandler(async (event) => {
     body: {
       from: fromEmail,
       to: toEmail,
-      subject: `New waitlist signup: ${fullName}`,
+      subject: `New waitlist signup: ${email}`,
       html: `
         <h2>New waitlist signup</h2>
-        <p><strong>Name:</strong> ${fullName}</p>
         <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Interest:</strong> ${interestLabel}</p>
+        <p><strong>Status:</strong> ${statusLabel}</p>
       `
     }
   })
@@ -89,9 +91,8 @@ export default defineEventHandler(async (event) => {
       subject: 'Thanks for joining the Igudar waitlist',
       html: `
         <h2>Thanks for joining Igudar</h2>
-        <p>Hi ${fullName},</p>
         <p>Thanks for your interest in Igudar. We received your details and will reach out soon.</p>
-        <p><strong>Your selection:</strong> ${interestLabel}</p>
+        <p><strong>Your selection:</strong> ${statusLabel}</p>
         <p>See you at the showcase!</p>
       `
     }
